@@ -65,7 +65,7 @@ const state={data:{...fallback},category:0,selected:0,focus:'menu',screen:'idle'
 const params=new URLSearchParams(location.search);const mode=params.get('mode')==='remote'?'remote':'tv';const existing=params.get('session');const session=(existing||Math.random().toString(36).slice(2,8)).toUpperCase();const topic='digital-museum-player/demo/'+session;let client=null,localChannel=null,remoteHandshake=null,remoteConfirmed=false,toastTimer;
 const $=id=>document.getElementById(id);const tvView=$('tvView');const remoteView=$('remoteView');
 const clean=s=>{const d=document.createElement('div');d.innerHTML=s||'';return(d.textContent||'').replace(/\s+/g,' ').trim()};
-function imageOf(x){return x?._embedded?.['wp:featuredmedia']?.[0]?.source_url||x?.featured_image_url||x?.acf?.image?.url||x?.acf?.photo?.url||'' : ''}
+function imageOf(x){if(!x)return'';return x?._embedded?.['wp:featuredmedia']?.[0]?.source_url||x?.featured_image_url||x?.acf?.image?.url||x?.acf?.photo?.url||''}
 function normalize(x,type){return{title:clean(x?.title?.rendered||x?.name||'Без назви'),type:type||clean(x?.acf?.genre||x?.type||'Матеріал'),meta:clean(x?.date?new Date(x.date).toLocaleDateString('uk-UA'):x?.acf?.subtitle||''),img:imageOf(x),desc:clean(x?.excerpt?.rendered||x?.content?.rendered||x?.description||'').slice(0,340),url:x?.link||'https://teatrdgu.com/'}}
 async function fetchJson(url){const r=await fetch(url,{mode:'cors',headers:{Accept:'application/json'}});if(!r.ok)throw new Error(String(r.status));return r.json()}
 async function discoverTypes(){try{const types=await fetchJson(`${API}/types`);state.typeMap=types||{};return types}catch{return{}}}
