@@ -3,306 +3,53 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#090a0c">
+<meta name="theme-color" content="#090a0d">
 <title>Digital Museum Player</title>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
-:root{--bg:#090a0c;--panel:#111318;--panel2:#171a20;--text:#f6f2e8;--muted:#9da3ae;--line:rgba(255,255,255,.1);--accent:#dfb768;--accent2:#f0d9a6;--danger:#ff746f;--radius:26px;--shadow:0 30px 80px rgba(0,0,0,.35)}
-*{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-button,input{font:inherit}
-button{color:inherit}
-body{overflow:hidden}
-.app{min-height:100vh;position:relative;background:radial-gradient(circle at 12% 0%,rgba(223,183,104,.12),transparent 32%),radial-gradient(circle at 100% 100%,rgba(65,84,122,.14),transparent 35%),var(--bg)}
-.view{display:none;min-height:100vh}
-.view.active{display:flex}
-.tv-shell{width:100%;min-height:100vh;padding:32px 42px 28px;flex-direction:column}
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:28px}
-.brand{display:flex;align-items:center;gap:14px;min-width:0}
-.brand-mark{width:42px;height:42px;border:1px solid rgba(223,183,104,.6);border-radius:50%;display:grid;place-items:center;color:var(--accent);font-weight:700;letter-spacing:.08em}
-.brand-copy{min-width:0}
-.brand-copy strong{display:block;font-size:15px;letter-spacing:.16em;text-transform:uppercase}
-.brand-copy span{display:block;color:var(--muted);font-size:12px;margin-top:4px}
-.status{display:flex;align-items:center;gap:9px;padding:10px 14px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:13px;background:rgba(255,255,255,.03)}
-.status-dot{width:8px;height:8px;border-radius:50%;background:#6d7580;box-shadow:0 0 0 5px rgba(109,117,128,.08)}
-.status.active .status-dot{background:#6fda8a;box-shadow:0 0 0 5px rgba(111,218,138,.09)}
-.stage{flex:1;min-height:0;display:flex;flex-direction:column}
-.idle{flex:1;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(360px,.8fr);gap:42px;align-items:center}
-.hero-kicker{color:var(--accent);font-size:13px;text-transform:uppercase;letter-spacing:.22em;margin-bottom:20px}
-.hero h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(52px,6vw,92px);line-height:.95;letter-spacing:-.045em;margin:0;max-width:900px}
-.hero p{font-size:clamp(18px,1.7vw,25px);line-height:1.55;color:#c6c9cf;max-width:760px;margin:28px 0 0}
-.hero-note{display:flex;align-items:center;gap:12px;margin-top:34px;color:var(--muted);font-size:14px}
-.key{width:34px;height:34px;border:1px solid var(--line);border-bottom-color:rgba(255,255,255,.22);border-radius:9px;display:grid;place-items:center;background:rgba(255,255,255,.03)}
-.pair-card{background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.025));border:1px solid var(--line);border-radius:34px;padding:26px;box-shadow:var(--shadow)}
-.qr-frame{background:#fff;border-radius:24px;padding:18px;aspect-ratio:1;display:grid;place-items:center;overflow:hidden}
-.qr-frame img{display:block;width:100%;height:100%;object-fit:contain}
-.pair-card h2{font-size:23px;margin:22px 0 8px}
-.pair-card p{margin:0;color:var(--muted);line-height:1.5;font-size:14px}
-.session-code{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line);margin-top:22px;padding-top:18px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.12em}
-.session-code strong{color:var(--accent2);font-size:13px}
-.library{display:none;flex:1;min-height:0;flex-direction:column}
-.library.active{display:flex}
-.library-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:24px}
-.library-head h1{font-family:Georgia,"Times New Roman",serif;font-size:46px;font-weight:400;margin:0}
-.library-head p{margin:8px 0 0;color:var(--muted)}
-.hint{color:var(--muted);font-size:13px}
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;flex:1;min-height:0;align-content:start}
-.card{position:relative;min-height:210px;border-radius:26px;border:1px solid var(--line);overflow:hidden;background:var(--panel);padding:24px;display:flex;flex-direction:column;justify-content:flex-end;transition:.18s ease;outline:none}
-.card::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 10%,rgba(9,10,12,.18) 48%,rgba(9,10,12,.9) 100%),var(--cover);background-size:cover;background-position:center;filter:saturate(.75);transition:.25s ease}
-.card::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 0 var(--accent);transition:.15s ease}
-.card.selected{transform:translateY(-4px);border-color:rgba(223,183,104,.75);box-shadow:0 18px 45px rgba(0,0,0,.32)}
-.card.selected::after{box-shadow:inset 0 0 0 3px var(--accent)}
-.card>*{position:relative;z-index:1}
-.card small{color:var(--accent2);text-transform:uppercase;letter-spacing:.16em;font-size:11px;margin-bottom:7px}
-.card strong{font-size:24px;line-height:1.1}
-.card span{color:#c6c9cf;font-size:13px;margin-top:8px}
-.item{display:none;flex:1;min-height:0}
-.item.active{display:grid;grid-template-columns:minmax(0,1.42fr) minmax(340px,.58fr);gap:26px}
-.media{border:1px solid var(--line);background:#050607;border-radius:30px;overflow:hidden;min-height:0;position:relative;display:grid;place-items:center}
-.media img{width:100%;height:100%;object-fit:cover;display:block}
-.media iframe{width:100%;height:100%;border:0;display:block}
-.media-placeholder{padding:60px;text-align:center;color:var(--muted)}
-.info{border:1px solid var(--line);border-radius:30px;padding:32px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.018));display:flex;flex-direction:column;min-height:0}
-.info .eyebrow{color:var(--accent);text-transform:uppercase;letter-spacing:.18em;font-size:12px}
-.info h2{font-family:Georgia,"Times New Roman",serif;font-size:42px;line-height:1.06;font-weight:400;margin:14px 0 16px}
-.meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
-.meta span{padding:8px 11px;border:1px solid var(--line);border-radius:999px;color:#c7cad0;font-size:12px}
-.info p{color:#c3c7cf;line-height:1.65;margin:0;font-size:15px}
-.info-foot{margin-top:auto;padding-top:24px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:14px;color:var(--muted);font-size:12px}
-.bottom{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-top:22px;color:var(--muted);font-size:12px}
-.bottom strong{color:#d6d8dc;font-weight:500}
-.remote-shell{width:100%;min-height:100vh;padding:24px max(20px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));flex-direction:column;background:radial-gradient(circle at 50% -10%,rgba(223,183,104,.12),transparent 30%),#0a0b0d}
-.remote-top{display:flex;align-items:center;justify-content:space-between;gap:16px}
-.remote-brand{font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted)}
-.remote-chip{font-size:11px;padding:8px 10px;border:1px solid var(--line);border-radius:999px;color:#aeb3bc}
-.remote-main{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;width:min(100%,480px);margin:0 auto;padding:28px 0}
-.remote-main h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:42px;margin:0 0 8px;text-align:center}
-.remote-main>p{color:var(--muted);text-align:center;margin:0 0 36px;line-height:1.5}
-.dpad{width:min(82vw,340px);aspect-ratio:1;position:relative}
-.dpad button{position:absolute;border:1px solid var(--line);background:linear-gradient(180deg,#1b1e24,#111318);box-shadow:0 13px 30px rgba(0,0,0,.24);display:grid;place-items:center;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:transform .08s ease,border-color .12s ease,background .12s ease}
-.dpad button:active{transform:scale(.96);background:#22262e;border-color:rgba(223,183,104,.55)}
-.up,.down{left:33.33%;width:33.34%;height:33.34%}
-.up{top:0;border-radius:26px 26px 12px 12px}
-.down{bottom:0;border-radius:12px 12px 26px 26px}
-.left,.right{top:33.33%;height:33.34%;width:33.34%}
-.left{left:0;border-radius:26px 12px 12px 26px}
-.right{right:0;border-radius:12px 26px 26px 12px}
-.ok{left:33.33%;top:33.33%;width:33.34%;height:33.34%;border-radius:50%!important;background:linear-gradient(180deg,#d9b267,#a9813f)!important;color:#0b0c0e;font-weight:800;font-size:18px;border-color:rgba(255,255,255,.28)!important}
-.arrow{font-size:25px;line-height:1}
-.remote-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:min(100%,420px);margin-top:32px}
-.remote-actions button{border:1px solid var(--line);background:#13161b;border-radius:18px;padding:17px 16px;cursor:pointer}
-.remote-actions button:active{background:#1a1e25}
-.remote-status{width:min(100%,420px);display:flex;align-items:center;justify-content:center;gap:9px;color:var(--muted);font-size:12px;margin-top:22px}
-.remote-status i{display:block;width:7px;height:7px;border-radius:50%;background:#6fda8a}
-.demo-banner{position:fixed;z-index:20;left:50%;bottom:20px;transform:translateX(-50%);padding:10px 14px;border:1px solid rgba(223,183,104,.25);background:rgba(18,20,24,.9);backdrop-filter:blur(14px);border-radius:999px;color:#d7c6a2;font-size:11px;letter-spacing:.04em;white-space:nowrap}
-@media(max-width:900px){body{overflow:auto}.tv-shell{padding:22px}.idle{grid-template-columns:1fr}.pair-card{max-width:420px}.grid{grid-template-columns:1fr 1fr}.item.active{grid-template-columns:1fr}.media{min-height:52vh}.info{min-height:360px}}
-@media(max-width:620px){.tv-shell{padding:18px}.topbar{align-items:flex-start}.brand-copy span{display:none}.status{padding:8px 10px}.idle{gap:26px}.hero h1{font-size:48px}.hero p{font-size:17px}.grid{grid-template-columns:1fr}.card{min-height:180px}.library-head{align-items:flex-start;flex-direction:column}.library-head h1{font-size:38px}.item.active{display:flex;flex-direction:column}.media{min-height:48vh}.info h2{font-size:34px}.bottom{align-items:flex-start;flex-direction:column}.demo-banner{max-width:calc(100vw - 24px);overflow:hidden;text-overflow:ellipsis}}
+:root{--bg:#090a0d;--panel:#11151b;--panel2:#171c24;--text:#f5f1e8;--muted:#969da8;--line:rgba(255,255,255,.1);--gold:#d5ad61;--gold2:#f0d7a3;--green:#6fda8a;--radius:28px;--shadow:0 30px 90px rgba(0,0,0,.4)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{overflow:hidden}button{font:inherit;color:inherit}.app{min-height:100vh;background:radial-gradient(circle at 12% 0%,rgba(213,173,97,.13),transparent 32%),radial-gradient(circle at 100% 100%,rgba(49,74,118,.14),transparent 38%),var(--bg)}.view{display:none;min-height:100vh}.view.active{display:flex}.tv{padding:28px 38px 24px;flex-direction:column}.topbar{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:24px}.brand{display:flex;align-items:center;gap:14px}.mark{width:44px;height:44px;border:1px solid rgba(213,173,97,.58);border-radius:50%;display:grid;place-items:center;color:var(--gold);font-weight:800;letter-spacing:.08em}.brand strong{display:block;font-size:14px;text-transform:uppercase;letter-spacing:.16em}.brand span{display:block;color:var(--muted);font-size:12px;margin-top:4px}.status{display:flex;align-items:center;gap:9px;padding:10px 14px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:13px;background:rgba(255,255,255,.03)}.dot{width:8px;height:8px;border-radius:50%;background:#68717c;box-shadow:0 0 0 5px rgba(104,113,124,.09)}.status.online .dot{background:var(--green);box-shadow:0 0 0 5px rgba(111,218,138,.1)}.stage{flex:1;min-height:0;display:flex;flex-direction:column}.idle{flex:1;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(340px,.75fr);gap:48px;align-items:center}.kicker{color:var(--gold);font-size:12px;text-transform:uppercase;letter-spacing:.24em;margin-bottom:18px}.hero h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(54px,6.2vw,96px);line-height:.94;letter-spacing:-.045em;margin:0;max-width:950px}.hero p{font-size:clamp(18px,1.7vw,25px);line-height:1.52;color:#c5c9cf;max-width:790px;margin:28px 0 0}.note{display:flex;align-items:center;gap:11px;margin-top:32px;color:var(--muted);font-size:13px}.mini-key{width:34px;height:34px;border:1px solid var(--line);border-radius:10px;display:grid;place-items:center;background:rgba(255,255,255,.035)}.pair{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.025));border:1px solid var(--line);border-radius:34px;padding:25px;box-shadow:var(--shadow)}.qr{background:#fff;border-radius:22px;padding:15px;aspect-ratio:1;display:grid;place-items:center}.qr img{width:100%;height:100%;object-fit:contain;display:block}.pair h2{font-size:22px;margin:20px 0 8px}.pair p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}.session{display:flex;justify-content:space-between;gap:14px;margin-top:20px;padding-top:17px;border-top:1px solid var(--line);font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted)}.session strong{color:var(--gold2)}.library{display:none;flex:1;min-height:0;flex-direction:column}.library.active{display:flex}.library-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:20px}.library-head h1{font-family:Georgia,"Times New Roman",serif;font-size:45px;font-weight:400;margin:0}.library-head p{margin:7px 0 0;color:var(--muted)}.hint{color:var(--muted);font-size:12px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;flex:1;align-content:start}.card{position:relative;min-height:210px;border-radius:25px;border:1px solid var(--line);overflow:hidden;background:linear-gradient(145deg,var(--a),var(--b));padding:22px;display:flex;flex-direction:column;justify-content:flex-end;transition:.16s ease}.card:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 80% 20%,rgba(255,255,255,.17),transparent 23%),linear-gradient(180deg,transparent 15%,rgba(5,7,10,.15) 48%,rgba(5,7,10,.92) 100%)}.card:after{content:attr(data-icon);position:absolute;right:22px;top:14px;font-family:Georgia,serif;font-size:76px;color:rgba(255,255,255,.12);line-height:1}.card>*{position:relative;z-index:1}.card small{color:var(--gold2);font-size:10px;text-transform:uppercase;letter-spacing:.17em;margin-bottom:7px}.card strong{font-size:23px;line-height:1.08}.card span{font-size:12px;color:#c6cad1;margin-top:8px}.card.selected{transform:translateY(-4px);border-color:rgba(213,173,97,.86);box-shadow:0 16px 45px rgba(0,0,0,.35),inset 0 0 0 3px var(--gold)}.item{display:none;flex:1;min-height:0}.item.active{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(330px,.5fr);gap:24px}.media{min-height:0;border:1px solid var(--line);border-radius:30px;overflow:hidden;background:#050607;position:relative;display:grid;place-items:center}.media-art{position:absolute;inset:0;background:radial-gradient(circle at 25% 28%,rgba(255,255,255,.22),transparent 18%),radial-gradient(circle at 72% 60%,rgba(255,255,255,.09),transparent 28%),linear-gradient(135deg,var(--ma),var(--mb));display:grid;place-items:center}.media-art b{font-family:Georgia,serif;font-size:clamp(80px,14vw,210px);font-weight:400;color:rgba(255,255,255,.2)}.play{width:90px;height:90px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(8,9,12,.45);backdrop-filter:blur(10px);display:grid;place-items:center;font-size:30px;z-index:2}.info{border:1px solid var(--line);border-radius:30px;padding:30px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.018));display:flex;flex-direction:column}.eyebrow{color:var(--gold);font-size:11px;text-transform:uppercase;letter-spacing:.18em}.info h2{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:40px;line-height:1.04;margin:13px 0 15px}.meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}.meta span{border:1px solid var(--line);border-radius:999px;padding:7px 10px;color:#c5c9cf;font-size:11px}.info p{color:#bfc4cc;line-height:1.62;font-size:14px;margin:0}.info-foot{margin-top:auto;padding-top:20px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:15px;color:var(--muted);font-size:11px}.bottom{display:flex;justify-content:space-between;gap:18px;padding-top:18px;color:var(--muted);font-size:11px}.remote{width:100%;min-height:100vh;padding:22px max(18px,env(safe-area-inset-right)) max(22px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));flex-direction:column;background:radial-gradient(circle at 50% -10%,rgba(213,173,97,.14),transparent 31%),#090b0e}.remote-top{display:flex;justify-content:space-between;align-items:center;gap:15px}.remote-brand{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)}.chip{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:8px 10px;color:#b6bbc4}.remote-main{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;width:min(100%,470px);margin:0 auto;padding:24px 0}.remote-main h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:40px;margin:0 0 7px;text-align:center}.remote-main>p{color:var(--muted);text-align:center;line-height:1.45;margin:0 0 30px;font-size:14px}.connected{display:flex;align-items:center;gap:8px;color:#aeb5bd;font-size:12px;margin-bottom:24px}.connected i{width:8px;height:8px;border-radius:50%;background:#68717c}.connected.online i{background:var(--green);box-shadow:0 0 0 5px rgba(111,218,138,.1)}.dpad{width:min(82vw,330px);aspect-ratio:1;position:relative}.dpad button{position:absolute;border:1px solid var(--line);background:linear-gradient(180deg,#1a1f27,#11151b);box-shadow:0 13px 30px rgba(0,0,0,.25);display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;transition:.08s}.dpad button:active,.remote-actions button:active{transform:scale(.96);border-color:rgba(213,173,97,.7)}.up,.down{left:33.33%;width:33.34%;height:33.34%}.up{top:0;border-radius:25px 25px 11px 11px}.down{bottom:0;border-radius:11px 11px 25px 25px}.left,.right{top:33.33%;height:33.34%;width:33.34%}.left{left:0;border-radius:25px 11px 11px 25px}.right{right:0;border-radius:11px 25px 25px 11px}.ok{left:33.33%;top:33.33%;width:33.34%;height:33.34%;border-radius:50%!important;background:linear-gradient(180deg,#e3c078,#a9803e)!important;color:#090a0d;font-weight:800;font-size:17px}.arrow{font-size:24px}.remote-actions{display:grid;grid-template-columns:1fr 1fr;gap:11px;width:min(100%,410px);margin-top:28px}.remote-actions button{border:1px solid var(--line);background:#13171d;border-radius:17px;padding:16px;cursor:pointer;transition:.08s}.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:rgba(20,23,29,.94);border:1px solid var(--line);backdrop-filter:blur(16px);padding:10px 14px;border-radius:999px;color:#d7dbe1;font-size:11px;transition:.2s;z-index:30;white-space:nowrap}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:900px){body{overflow:auto}.tv{padding:22px}.idle{grid-template-columns:1fr}.pair{max-width:410px}.grid{grid-template-columns:1fr 1fr}.item.active{grid-template-columns:1fr}.media{min-height:52vh}.info{min-height:340px}}
+@media(max-width:620px){.tv{padding:17px}.brand span{display:none}.idle{gap:26px}.hero h1{font-size:48px}.hero p{font-size:17px}.grid{grid-template-columns:1fr}.card{min-height:170px}.library-head{align-items:flex-start;flex-direction:column}.library-head h1{font-size:36px}.item.active{display:flex;flex-direction:column}.media{min-height:46vh}.info h2{font-size:33px}.bottom{flex-direction:column}}
 </style>
 </head>
 <body>
 <div class="app">
-  <section id="tvView" class="view tv-shell">
-    <header class="topbar">
-      <div class="brand">
-        <div class="brand-mark">DM</div>
-        <div class="brand-copy"><strong>Digital Museum</strong><span>Інтерактивна цифрова експозиція</span></div>
-      </div>
-      <div id="tvStatus" class="status"><span class="status-dot"></span><span id="tvStatusText">Очікування відвідувача</span></div>
-    </header>
-    <main class="stage">
-      <section id="idleScreen" class="idle">
-        <div class="hero">
-          <div class="hero-kicker">Цифрова музейна колекція</div>
-          <h1>Відкрийте архів театру</h1>
-          <p>Вистави, фотографії, відео та документи зібрані в одному інтерактивному просторі. Скануйте QR-код і використовуйте телефон як пульт.</p>
-          <div class="hero-note"><span class="key">↵</span><span>Для демо можна натиснути Enter або відкрити пульт в іншій вкладці</span></div>
-        </div>
-        <aside class="pair-card">
-          <div class="qr-frame"><img id="qrImage" alt="QR-код для підключення"></div>
-          <h2>Підключити телефон</h2>
-          <p>Відскануйте QR-код. Телефон стане простим пультом для навігації по цифровій експозиції.</p>
-          <div class="session-code"><span>Сесія</span><strong id="sessionLabel">------</strong></div>
-        </aside>
-      </section>
-      <section id="libraryScreen" class="library">
-        <div class="library-head">
-          <div><h1>Цифровий архів</h1><p>Оберіть розділ або матеріал</p></div>
-          <div class="hint">← ↑ ↓ → навігація · OK відкрити</div>
-        </div>
-        <div id="libraryGrid" class="grid"></div>
-      </section>
-      <section id="itemScreen" class="item">
-        <div id="mediaBox" class="media"></div>
-        <aside class="info">
-          <div id="itemType" class="eyebrow"></div>
-          <h2 id="itemTitle"></h2>
-          <div id="itemMeta" class="meta"></div>
-          <p id="itemDescription"></p>
-          <div class="info-foot"><span>← Назад до каталогу</span><span id="itemSource"></span></div>
-        </aside>
-      </section>
-    </main>
-    <footer class="bottom"><span><strong>Digital Museum Player</strong> · прототип першого етапу</span><span id="clock"></span></footer>
-  </section>
-
-  <section id="remoteView" class="view remote-shell">
-    <div class="remote-top"><div class="remote-brand">Digital Museum Remote</div><div id="remoteSession" class="remote-chip"></div></div>
-    <main class="remote-main">
-      <h1>Пульт керування</h1>
-      <p>Керуйте експозицією так само просто, як телевізором.</p>
-      <div class="dpad">
-        <button class="up" data-command="UP" aria-label="Вгору"><span class="arrow">↑</span></button>
-        <button class="left" data-command="LEFT" aria-label="Ліворуч"><span class="arrow">←</span></button>
-        <button class="ok" data-command="OK" aria-label="Вибрати">OK</button>
-        <button class="right" data-command="RIGHT" aria-label="Праворуч"><span class="arrow">→</span></button>
-        <button class="down" data-command="DOWN" aria-label="Вниз"><span class="arrow">↓</span></button>
-      </div>
-      <div class="remote-actions">
-        <button data-command="BACK">← Назад</button>
-        <button data-command="HOME">⌂ Головна</button>
-      </div>
-      <div class="remote-status"><i></i><span>Демо-пульт активний</span></div>
-    </main>
-  </section>
-
-  <div id="demoBanner" class="demo-banner">Прототип: керування між вкладками працює локально через BroadcastChannel</div>
+<section id="tvView" class="view tv">
+<header class="topbar"><div class="brand"><div class="mark">DM</div><div><strong>Digital Museum</strong><span>Інтерактивна цифрова експозиція</span></div></div><div id="tvStatus" class="status"><span class="dot"></span><span id="tvStatusText">Очікування відвідувача</span></div></header>
+<main class="stage">
+<section id="idle" class="idle"><div class="hero"><div class="kicker">Цифрова музейна колекція</div><h1>Відкрийте архів театру</h1><p>Вистави, фотографії, відео та документи зібрані в одному інтерактивному просторі. Скануйте QR-код і використовуйте телефон як пульт.</p><div class="note"><span class="mini-key">↵</span><span>Для демонстрації також можна керувати стрілками клавіатури</span></div></div><aside class="pair"><div class="qr"><img id="qr" alt="QR-код для підключення"></div><h2>Підключити телефон</h2><p>Відскануйте QR-код. Після підключення цей екран автоматично перейде до цифрової колекції.</p><div class="session"><span>Сесія</span><strong id="sessionLabel"></strong></div></aside></section>
+<section id="library" class="library"><div class="library-head"><div><h1>Цифровий архів</h1><p>Оберіть матеріал за допомогою смартфона</p></div><div class="hint">← ↑ ↓ → навігація · OK відкрити</div></div><div id="grid" class="grid"></div></section>
+<section id="item" class="item"><div id="media" class="media"></div><aside class="info"><div id="eyebrow" class="eyebrow"></div><h2 id="itemTitle"></h2><div id="meta" class="meta"></div><p id="desc"></p><div class="info-foot"><span>← Назад до колекції</span><span>OK · відтворити</span></div></aside></section>
+</main><footer class="bottom"><span>Digital Museum Player · Prototype</span><span id="footerState">Екран готовий до підключення</span></footer>
+</section>
+<section id="remoteView" class="view remote"><header class="remote-top"><div class="remote-brand">Digital Museum · Remote</div><div id="remoteSession" class="chip"></div></header><main class="remote-main"><h1>Пульт експозиції</h1><p>Керуйте цифровим архівом на великому екрані.</p><div id="remoteConnected" class="connected"><i></i><span id="remoteConnectedText">Підключення до екрана…</span></div><div class="dpad"><button class="up" data-command="up" aria-label="Вгору"><span class="arrow">↑</span></button><button class="left" data-command="left" aria-label="Ліворуч"><span class="arrow">←</span></button><button class="ok" data-command="ok">OK</button><button class="right" data-command="right" aria-label="Праворуч"><span class="arrow">→</span></button><button class="down" data-command="down" aria-label="Вниз"><span class="arrow">↓</span></button></div><div class="remote-actions"><button data-command="back">← Назад</button><button data-command="home">⌂ Головна</button></div></main></section>
+<div id="toast" class="toast"></div>
 </div>
 <script>
 const items=[
- {id:1,type:'Відео',title:'Сцена і пам’ять',year:'1998',category:'Вистави',source:'YouTube',cover:'url(https://images.unsplash.com/photo-1503095396549-807759245b35?auto=format&fit=crop&w=1200&q=80)',media:'https://www.youtube.com/embed/Scxs7L0vhZ4?rel=0',description:'Фрагмент цифрової колекції театральних матеріалів. У реальній системі тут може бути відеозапис вистави, репетиції або інтерв’ю з учасниками постановки.'},
- {id:2,type:'Фотоархів',title:'За лаштунками',year:'2004',category:'Фотографії',source:'Архів музею',cover:'url(https://images.unsplash.com/photo-1507924538820-ede94a04019d?auto=format&fit=crop&w=1200&q=80)',media:'https://images.unsplash.com/photo-1507924538820-ede94a04019d?auto=format&fit=crop&w=1600&q=85',description:'Фотографії репетицій, костюмів і сценографії. Каталог може зберігати як самі файли, так і посилання на зовнішнє сховище.'},
- {id:3,type:'Документ',title:'Афіші сезону',year:'1976–1977',category:'Документи',source:'Google Drive',cover:'url(https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=1200&q=80)',media:'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=1600&q=85',description:'Оцифровані афіші, програмки та службові документи. Для MVP достатньо зберігати метадані та стабільне посилання на джерело.'},
- {id:4,type:'Аудіо',title:'Голоси театру',year:'1989',category:'Інтерв’ю',source:'Медіаархів',cover:'url(https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=1200&q=80)',media:'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=1600&q=85',description:'Усні історії, спогади акторів і співробітників. У наступній версії тут може бути вбудований аудіоплеєр з навігацією з телефона.'},
- {id:5,type:'Колекція',title:'Костюм і сценографія',year:'1960–2020',category:'Колекції',source:'Музейний фонд',cover:'url(https://images.unsplash.com/photo-1514306191717-452ec28c7814?auto=format&fit=crop&w=1200&q=80)',media:'https://images.unsplash.com/photo-1514306191717-452ec28c7814?auto=format&fit=crop&w=1600&q=85',description:'Добірка матеріалів про театральний костюм, ескізи та сценографію. Один айтем може відкривати окрему тематичну підбірку.'},
- {id:6,type:'Історія',title:'Театр у місті',year:'XX століття',category:'Історія',source:'Цифровий каталог',cover:'url(https://images.unsplash.com/photo-1516307365426-bea591f05011?auto=format&fit=crop&w=1200&q=80)',media:'https://images.unsplash.com/photo-1516307365426-bea591f05011?auto=format&fit=crop&w=1600&q=85',description:'Хронологія театру в контексті міста: люди, події, гастролі та зміни театрального простору.'}
+{title:'Легендарні вистави',type:'Відеоархів',year:'1970–2000',count:'24 матеріали',icon:'◐',a:'#735742',b:'#25222a',ma:'#5e3828',mb:'#131c2b',desc:'Фрагменти знакових постановок, телевізійні записи та матеріали з архіву театру.'},
+{title:'Актори та режисери',type:'Персоналії',year:'Архів',count:'38 історій',icon:'◎',a:'#384f5f',b:'#22242d',ma:'#20485a',mb:'#241d28',desc:'Фотографії, інтерв’ю та біографічні матеріали людей, які формували історію театру.'},
+{title:'За лаштунками',type:'Фотогалерея',year:'1950–2026',count:'67 фото',icon:'◇',a:'#675a41',b:'#20252a',ma:'#71552e',mb:'#18252d',desc:'Репетиції, гримерні, декорації та моменти, які зазвичай залишаються поза увагою глядачів.'},
+{title:'Афіші та програми',type:'Документи',year:'XX–XXI ст.',count:'42 документи',icon:'▤',a:'#514563',b:'#25232b',ma:'#493660',mb:'#1d2630',desc:'Оцифровані афіші, програмки, запрошення та інші документи з музейної колекції.'},
+{title:'Голоси театру',type:'Аудіо',year:'Архів',count:'16 записів',icon:'≈',a:'#435a4f',b:'#20262a',ma:'#285842',mb:'#1a2330',desc:'Спогади, інтерв’ю та рідкісні аудіозаписи з фондів і приватних колекцій.'},
+{title:'Історія будівлі',type:'Мультимедіа',year:'1880–2026',count:'12 матеріалів',icon:'⌂',a:'#66504b',b:'#29242a',ma:'#694235',mb:'#1d2631',desc:'Архітектура, перебудови, плани та фотографії простору в різні періоди його історії.'}
 ];
-const params=new URLSearchParams(location.search);
-const mode=params.get('mode')==='remote'?'remote':'tv';
-const session=params.get('session')||Math.random().toString(36).slice(2,8).toUpperCase();
-const channelName='digital-museum-'+session;
-let channel=null;
-try{channel=new BroadcastChannel(channelName)}catch(e){}
-const state={screen:'idle',selected:0};
-const tvView=document.getElementById('tvView');
-const remoteView=document.getElementById('remoteView');
-const idleScreen=document.getElementById('idleScreen');
-const libraryScreen=document.getElementById('libraryScreen');
-const itemScreen=document.getElementById('itemScreen');
-const libraryGrid=document.getElementById('libraryGrid');
-const tvStatus=document.getElementById('tvStatus');
-const tvStatusText=document.getElementById('tvStatusText');
-const demoBanner=document.getElementById('demoBanner');
-
-function buildRemoteUrl(){
- const base=location.href.split('?')[0].split('#')[0];
- return base+'?mode=remote&session='+encodeURIComponent(session);
-}
-function init(){
- if(mode==='remote'){
-  remoteView.classList.add('active');
-  document.getElementById('remoteSession').textContent='Сесія '+session;
-  demoBanner.textContent='Демо: відкрийте TV-сторінку в іншій вкладці цього браузера';
- }else{
-  tvView.classList.add('active');
-  document.getElementById('sessionLabel').textContent=session;
-  const url=buildRemoteUrl();
-  document.getElementById('qrImage').src='https://api.qrserver.com/v1/create-qr-code/?size=640x640&margin=10&data='+encodeURIComponent(url);
-  renderGrid();
-  updateClock();setInterval(updateClock,1000);
- }
- bind();
-}
-function renderGrid(){
- libraryGrid.innerHTML='';
- items.forEach((item,index)=>{
-  const card=document.createElement('button');
-  card.className='card'+(index===state.selected?' selected':'');
-  card.style.setProperty('--cover',item.cover);
-  card.innerHTML='<small>'+item.type+'</small><strong>'+item.title+'</strong><span>'+item.year+' · '+item.category+'</span>';
-  card.addEventListener('click',()=>{state.selected=index;openItem()});
-  libraryGrid.appendChild(card);
- });
-}
-function setStatus(active,text){
- tvStatus.classList.toggle('active',active);
- tvStatusText.textContent=text;
-}
-function showLibrary(){
- state.screen='library';
- idleScreen.style.display='none';
- itemScreen.classList.remove('active');
- libraryScreen.classList.add('active');
- setStatus(true,'Пульт підключено');
- renderGrid();
-}
-function showIdle(){
- state.screen='idle';
- libraryScreen.classList.remove('active');
- itemScreen.classList.remove('active');
- idleScreen.style.display='grid';
- setStatus(false,'Очікування відвідувача');
-}
-function openItem(){
- const item=items[state.selected];
- state.screen='item';
- idleScreen.style.display='none';
- libraryScreen.classList.remove('active');
- itemScreen.classList.add('active');
- const media=document.getElementById('mediaBox');
- if(item.source==='YouTube') media.innerHTML='<iframe src="'+item.media+'" title="'+item.title+'" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
- else media.innerHTML='<img src="'+item.media+'" alt="'+item.title+'">';
- document.getElementById('itemType').textContent=item.type;
- document.getElementById('itemTitle').textContent=item.title;
- document.getElementById('itemDescription').textContent=item.description;
- document.getElementById('itemSource').textContent=item.source;
- document.getElementById('itemMeta').innerHTML='<span>'+item.year+'</span><span>'+item.category+'</span><span>'+item.source+'</span>';
-}
-function move(command){
- if(state.screen==='idle'){
-  if(command==='OK'||command==='RIGHT'||command==='DOWN') showLibrary();
-  return;
- }
- if(state.screen==='item'){
-  if(command==='BACK'||command==='LEFT'){showLibrary();return}
-  if(command==='HOME'){showIdle();return}
-  if(command==='RIGHT'){state.selected=(state.selected+1)%items.length;openItem();return}
-  if(command==='UP'||command==='DOWN') return;
- }
- if(state.screen==='library'){
-  const cols=window.innerWidth<620?1:(window.innerWidth<900?2:3);
-  if(command==='LEFT') state.selected=(state.selected-1+items.length)%items.length;
-  if(command==='RIGHT') state.selected=(state.selected+1)%items.length;
-  if(command==='UP') state.selected=(state.selected-cols+items.length)%items.length;
-  if(command==='DOWN') state.selected=(state.selected+cols)%items.length;
-  if(command==='OK'){openItem();return}
-  if(command==='BACK'||command==='HOME'){showIdle();return}
-  renderGrid();
-  const selected=document.querySelector('.card.selected');
-  if(selected) selected.scrollIntoView({block:'nearest',inline:'nearest'});
- }
-}
-function send(command){
- if(channel) channel.postMessage({command,session,time:Date.now()});
- try{localStorage.setItem(channelName,JSON.stringify({command,session,time:Date.now(),nonce:Math.random()}))}catch(e){}
-}
-function bind(){
- if(channel) channel.onmessage=e=>{if(mode==='tv'&&e.data&&e.data.command) move(e.data.command)};
- window.addEventListener('storage',e=>{
-  if(mode!=='tv'||e.key!==channelName||!e.newValue)return;
-  try{const data=JSON.parse(e.newValue);if(data.command)move(data.command)}catch(err){}
- });
- document.querySelectorAll('[data-command]').forEach(btn=>btn.addEventListener('click',()=>send(btn.dataset.command)));
- window.addEventListener('keydown',e=>{
-  if(mode!=='tv')return;
-  const map={ArrowUp:'UP',ArrowDown:'DOWN',ArrowLeft:'LEFT',ArrowRight:'RIGHT',Enter:'OK',Escape:'BACK',Home:'HOME'};
-  if(map[e.key]){e.preventDefault();move(map[e.key])}
- });
-}
-function updateClock(){
- const el=document.getElementById('clock');
- if(!el)return;
- el.textContent=new Intl.DateTimeFormat('uk-UA',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'long'}).format(new Date());
-}
-init();
+const params=new URLSearchParams(location.search);const mode=params.get('mode')==='remote'?'remote':'tv';const existing=params.get('session');const session=(existing||Math.random().toString(36).slice(2,8)).toUpperCase();const topic='digital-museum-player/demo/'+session;let client=null;let localChannel=null;let selected=0;let screen='idle';let paired=false;let toastTimer;
+const $=id=>document.getElementById(id);const tvView=$('tvView');const remoteView=$('remoteView');const idle=$('idle');const library=$('library');const item=$('item');
+function showToast(text){const el=$('toast');el.textContent=text;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1200)}
+function remoteUrl(){return 'https://pavlo-bondarchuk.github.io/digital-museum-player/?mode=remote&session='+encodeURIComponent(session)}
+function renderGrid(){const grid=$('grid');grid.innerHTML=items.map((x,i)=>`<article class="card ${i===selected?'selected':''}" style="--a:${x.a};--b:${x.b}" data-icon="${x.icon}"><small>${x.type}</small><strong>${x.title}</strong><span>${x.year} · ${x.count}</span></article>`).join('')}
+function setScreen(next){screen=next;idle.style.display=next==='idle'?'grid':'none';library.classList.toggle('active',next==='library');item.classList.toggle('active',next==='item');if(next==='library')renderGrid();$('footerState').textContent=next==='idle'?'Екран готовий до підключення':next==='library'?'Користувач керує експозицією':'Відкрито матеріал'}
+function openItem(){const x=items[selected];$('eyebrow').textContent=x.type;$('itemTitle').textContent=x.title;$('desc').textContent=x.desc;$('meta').innerHTML=`<span>${x.year}</span><span>${x.count}</span>`;$('media').innerHTML=`<div class="media-art" style="--ma:${x.ma};--mb:${x.mb}"><b>${x.icon}</b><div class="play">▶</div></div>`;setScreen('item')}
+function move(dir){if(screen!=='library')return;const cols=innerWidth>900?3:innerWidth>620?2:1;let next=selected;if(dir==='left')next=Math.max(0,selected-1);if(dir==='right')next=Math.min(items.length-1,selected+1);if(dir==='up')next=Math.max(0,selected-cols);if(dir==='down')next=Math.min(items.length-1,selected+cols);selected=next;renderGrid()}
+function command(cmd){if(cmd==='left'||cmd==='right'||cmd==='up'||cmd==='down')move(cmd);if(cmd==='ok'){if(screen==='idle'){setPaired();setScreen('library')}else if(screen==='library')openItem();else showToast('Відтворення матеріалу')}if(cmd==='back'){if(screen==='item')setScreen('library');else if(screen==='library')setScreen('idle')}if(cmd==='home')setScreen('library')}
+function setPaired(){paired=true;$('tvStatus').classList.add('online');$('tvStatusText').textContent='Пульт підключено';$('footerState').textContent='Підключено смартфон'}
+function handleMessage(raw){let data;try{data=typeof raw==='string'?JSON.parse(raw):raw}catch{return}if(!data||data.session!==session)return;if(mode==='tv'){if(data.type==='hello'){setPaired();setScreen('library');send({type:'screen-online'})}if(data.type==='command'){setPaired();command(data.command)}}else{if(data.type==='screen-online')setRemoteOnline()}}
+function send(payload){const data=JSON.stringify({...payload,session,ts:Date.now()});if(client&&client.connected)client.publish(topic,data,{qos:0});if(localChannel)localChannel.postMessage(data)}
+function connectRealtime(){if('BroadcastChannel'in window){localChannel=new BroadcastChannel('digital-museum-'+session);localChannel.onmessage=e=>handleMessage(e.data)}if(!window.mqtt)return;try{client=mqtt.connect('wss://broker.hivemq.com:8884/mqtt',{clientId:'dmp_'+mode+'_'+Math.random().toString(16).slice(2),clean:true,connectTimeout:6000,reconnectPeriod:2000,keepalive:30});client.on('connect',()=>{client.subscribe(topic);if(mode==='remote'){send({type:'hello'});setRemoteOnline('Пульт підключено')}});client.on('message',(t,p)=>{if(t===topic)handleMessage(p.toString())});client.on('error',()=>{if(mode==='remote')$('remoteConnectedText').textContent='Локальний демо-режим'})}catch(e){if(mode==='remote')$('remoteConnectedText').textContent='Локальний демо-режим'}}
+function setRemoteOnline(text='Екран підключено'){const el=$('remoteConnected');el.classList.add('online');$('remoteConnectedText').textContent=text}
+if(mode==='remote'){remoteView.classList.add('active');$('remoteSession').textContent='Сесія '+session;document.querySelectorAll('[data-command]').forEach(btn=>btn.addEventListener('click',()=>{send({type:'command',command:btn.dataset.command});showToast(btn.dataset.command==='ok'?'OK':btn.textContent.trim())}));connectRealtime();setTimeout(()=>send({type:'hello'}),700)}else{tvView.classList.add('active');$('sessionLabel').textContent=session;$('qr').src='https://api.qrserver.com/v1/create-qr-code/?size=600x600&margin=0&data='+encodeURIComponent(remoteUrl());renderGrid();setScreen('idle');connectRealtime();addEventListener('keydown',e=>{const map={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',Enter:'ok',Escape:'back'};if(map[e.key]){e.preventDefault();command(map[e.key])}})}
 </script>
 </body>
 </html>
